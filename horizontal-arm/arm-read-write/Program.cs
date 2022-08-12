@@ -29,6 +29,12 @@ namespace arm_read_write
         private static string s_iotHubUri;
         private static string s_deviceKey;
 
+        private static string s2_myDeviceId;
+        private static string s2_deviceKey;
+
+        private static string s3_myDeviceId;
+        private static string s3_deviceKey;
+
         private static async Task Main()
         {
             if (!ReadEnvironmentVariables())
@@ -39,13 +45,20 @@ namespace arm_read_write
             }
 
             Console.WriteLine("write messages to a hub and use routing to write them to storage");
-
+            //Three separate devices
+            //Creates DeviceClient - Modified - created 3 seperate device clients 
             s_deviceClient = DeviceClient.Create(s_iotHubUri, 
               new DeviceAuthenticationWithRegistrySymmetricKey(s_myDeviceId, s_deviceKey), TransportType.Mqtt);
 
+            s2_deviceClient = DeviceClient.Create(s_iotHubUri,
+             new DeviceAuthenticationWithRegistrySymmetricKey(s2_myDeviceId, s2_deviceKey), TransportType.Mqtt);
+
+            s3_deviceClient = DeviceClient.Create(s_iotHubUri,
+             new DeviceAuthenticationWithRegistrySymmetricKey(s3_myDeviceId, s3_deviceKey), TransportType.Mqtt);
+
             var cts = new CancellationTokenSource();
 
-            var messages = SendDeviceToCloudMessagesAsync(cts.Token);
+            var messages = SendDeviceToCloudMessagesAsync(cts.Token, s_myDeviceId);
 
             Console.WriteLine("Press the Enter key to stop.");
             Console.ReadLine();
@@ -62,12 +75,19 @@ namespace arm_read_write
         private static bool ReadEnvironmentVariables()
         {
             bool result = true;
+           
+            s_myDeviceId = Environment.GetEnvironmentVariable("simdev1-arm-app");
+            s_iotHubUri = Environment.GetEnvironmentVariable("iot-hub-mic-practice.azure-devices.net");
+            s_deviceKey = Environment.GetEnvironmentVariable("OASj9EVTf4k9dO4MV8cd1VGlX5n/Ryg8gooWnM2uX9M=");
 
-            s_myDeviceId = Environment.GetEnvironmentVariable("IOT_DEVICE_ID");
-            s_iotHubUri = Environment.GetEnvironmentVariable("IOT_HUB_URI");
-            s_deviceKey = Environment.GetEnvironmentVariable("IOT_DEVICE_KEY");
+            s2_myDeviceId = Environment.GetEnvironmentVariable("simdev2-arm");
+            s2_deviceKey = Environment.GetEnvironmentVariable("rb1u+9fUoD+gqmpqjcjU0e1F6v0EP7F7n9HJ6TAfb6Q=");
 
-            if ((s_myDeviceId is null) || (s_iotHubUri is null) || (s_deviceKey is null))
+            s3_myDeviceId = Environment.GetEnvironmentVariable("simdev3-arm-app");
+            s3_deviceKey = Environment.GetEnvironmentVariable("A6goY7UjlGQXTRpY4PlZA557fOvMF439piXVXhznVYM=");
+
+
+            if ((s_myDeviceId is null) || (s_iotHubUri is null) || (s_deviceKey is null) || (s2_myDeviceId is null) || (s2_deviceKey is null) || (s3_myDeviceId is null) || (s3_deviceKey is null))
             {
                 result = false;
             }
@@ -78,8 +98,10 @@ namespace arm_read_write
         /// <summary>
         /// Send message to the Iot hub. This generates the object to be sent to the hub in the message.
         /// </summary>
-        private static async Task SendDeviceToCloudMessagesAsync(CancellationToken token)
+        private static async Task SendDeviceToCloudMessagesAsync(CancellationToken token, string deviceID_src, string device_client_src)
         {
+            string deviceID = deviceID_src;
+            string s_deviceClient = device_client_src;
             double minTemperature = 20;
             double minHumidity = 60;
             Random rand = new Random();
@@ -112,6 +134,7 @@ namespace arm_read_write
                     infoString = "This is a normal message.";
                 }
 
+                //CReate new variable called telemetry Data Point (like array) putting 4 points into one variable 
                 var telemetryDataPoint = new
                 {
                     deviceId = s_myDeviceId,
@@ -133,10 +156,12 @@ namespace arm_read_write
                 //Add one property to the message.
                 message.Properties.Add("level", levelValue);
 
-                // Submit the message to the hub.
+                // Submit the message to the hub. - sending message to device client identified - MOdify? 
+                // loop through each client
+                //change to device_client 
                 await s_deviceClient.SendEventAsync(message);
 
-                // Print out the message.
+                // Print out the message. - useful for debugging - writes to terminal/VS
                 Console.WriteLine("{0} > Sent message: {1}", DateTime.Now, telemetryDataString);
 
                 await Task.Delay(1000);
