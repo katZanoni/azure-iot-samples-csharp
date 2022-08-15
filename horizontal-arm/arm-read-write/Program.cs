@@ -55,13 +55,14 @@ namespace arm_read_write
 
             s3_deviceClient = DeviceClient.Create(s_iotHubUri,
              new DeviceAuthenticationWithRegistrySymmetricKey(s3_myDeviceId, s3_deviceKey), TransportType.Mqtt);
-
+            //initiates a cancellation request 
             var cts = new CancellationTokenSource();
-
+            //passing token to SendDeviceToCloudMessagesAsync - allows us to have a token to be able to cancel 
             var messages = SendDeviceToCloudMessagesAsync(cts.Token, s_myDeviceId);
 
             Console.WriteLine("Press the Enter key to stop.");
             Console.ReadLine();
+            //Cancel long running task 
             cts.Cancel();
             await messages;
         }
@@ -105,7 +106,7 @@ namespace arm_read_write
             double minTemperature = 20;
             double minHumidity = 60;
             Random rand = new Random();
-
+            //while the cancellation token method is not invoked
             while (!token.IsCancellationRequested)
             {
 
